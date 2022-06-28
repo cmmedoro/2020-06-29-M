@@ -5,8 +5,11 @@
 package it.polito.tdp.imdb;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.imdb.model.Adiacenza;
+import it.polito.tdp.imdb.model.Director;
 import it.polito.tdp.imdb.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -35,10 +38,10 @@ public class FXMLController {
     private Button btnCercaAffini; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxAnno"
-    private ComboBox<?> boxAnno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxAnno; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxRegista"
-    private ComboBox<?> boxRegista; // Value injected by FXMLLoader
+    private ComboBox<Director> boxRegista; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtAttoriCondivisi"
     private TextField txtAttoriCondivisi; // Value injected by FXMLLoader
@@ -48,17 +51,75 @@ public class FXMLController {
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
-
+    	this.txtResult.clear();
+    	Integer anno;
+    	anno = this.boxAnno.getValue();
+    	if(anno == null) {
+    		this.txtResult.setText("Devi scegliere un anno dall'apposito menù a tendina");
+    		return;
+    	}
+    	//proseguo
+    	this.model.creaGrafo(anno);
+    	this.txtResult.setText("Grafo creato\n");
+    	this.txtResult.appendText("#VERTICI: "+this.model.nVertices()+"\n");
+    	this.txtResult.appendText("#ARCHI: "+this.model.nArchi()+"\n");
+    	this.boxRegista.getItems().clear();
+    	this.boxRegista.getItems().addAll(this.model.getRegisti());
     }
 
     @FXML
     void doRegistiAdiacenti(ActionEvent event) {
-
+    	this.txtResult.clear();
+    	if(!this.model.isGraphCreated()) {
+    		this.txtResult.setText("Devi prima creare il grafo!");
+    		return;
+    	}
+    	Director r = this.boxRegista.getValue();
+    	if( r == null ) {
+    		this.txtResult.setText("Devi selezionare un regista dall'apposito menù a tendina");
+    		return;
+    	}
+    	//proseguo
+    	List<Adiacenza> adiacenti = this.model.getAdiacenti(r);
+    	this.txtResult.setText("REGISTI ADIACENTI A: "+r.toString()+"\n");
+    	if(adiacenti.size() == 0) {
+    		this.txtResult.appendText("Non ha registi adiacenti\n");
+    	}else {
+    		for(Adiacenza a : adiacenti) {
+    			this.txtResult.appendText(a.getD2().toString()+" - #attori condivisi: "+a.getPeso()+"\n");
+    		}
+    	}
     }
 
     @FXML
     void doRicorsione(ActionEvent event) {
-
+    	this.txtResult.clear();
+    	if(!this.model.isGraphCreated()) {
+    		this.txtResult.setText("Devi prima creare il grafo!");
+    		return;
+    	}
+    	Director r = this.boxRegista.getValue();
+    	if( r == null ) {
+    		this.txtResult.setText("Devi selezionare un regista dall'apposito menù a tendina");
+    		return;
+    	}
+    	int c;
+    	try {
+    		c = Integer.parseInt(this.txtAttoriCondivisi.getText());
+    	}catch(NumberFormatException e) {
+    		this.txtResult.setText("Devi inserire un valore numerico intero come numero di attori condivisi.");
+    		return;
+    	}
+    	//proseguo con la ricorsione
+    	List<Director> cammino = this.model.cercaCammino(r, c);
+    	if(cammino.size() == 0) {
+    		this.txtResult.setText("Non è stato trovato alcun cammino dal regista "+r);
+    	}else {
+    		this.txtResult.appendText("Cammino dal regista "+r+" con un totale di attori condivisi pari a "+this.model.getSommaMax()+"\n");
+    		for(Director d : cammino) {
+    			this.txtResult.appendText(d+"\n");
+    		}
+    	}
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete
@@ -74,9 +135,11 @@ public class FXMLController {
     }
     
    public void setModel(Model model) {
-    	
     	this.model = model;
-    	
+    	this.boxAnno.getItems().clear();
+    	for(int i = 2004; i <= 2006; i++) {
+    		this.boxAnno.getItems().add(i);
+    	}
     }
     
 }
